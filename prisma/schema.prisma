@@ -1,0 +1,111 @@
+generator client {
+  provider = "cargo prisma"
+  output   = "../src/prisma.rs"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Auth
+model User {
+  id                          Int                   @id @default(autoincrement())
+  email                       String                @unique @db.VarChar(256)
+  password                    String                @db.VarChar(60)
+  name                        String
+
+  partner_id                  Int?                  @unique
+  partner                     User?                 @relation("Partner", fields: [partner_id], references: [id])
+  partner_of                  User?                 @relation("Partner")
+
+  balance                     Int                   @default(0)
+
+  authored_tasks              Task[]                @relation("Author")
+  as_executor_tasks           Task[]                @relation("Executor")
+  executed_tasks              TaskExecuteLog[]      @relation("Executor")
+  as_executed_tasks_approver  TaskExecuteLog[]      @relation("Approver")
+  as_request_executor         TaskExecuteRequest[]  @relation("RequestExecutor")
+  as_request_approver         TaskExecuteRequest[]  @relation("RequestApprover")
+
+  invites                     Invite[]              @relation("From")
+
+  @@map("users")
+}
+
+// Invite
+model Invite {
+  id          Int       @id @default(autoincrement())
+
+  from_id     Int
+  from        User      @relation("From", fields: [from_id], references: [id])
+
+  token       String    @unique
+
+  @@map("invites")
+}
+
+// Task
+model Task {
+  id                Int                 @id @default(autoincrement())
+  title             String
+  description       String
+  price             Int
+  created_at        DateTime            @default(now())
+  updated_at        DateTime            @updatedAt
+  is_need_request   Boolean             @default(false)
+  is_enabled        Boolean             @default(true)
+
+  author_id         Int
+  author            User                @relation("Author", fields: [author_id], references: [id])
+
+  executor_id       Int?
+  executor          User?               @relation("Executor", fields: [executor_id], references: [id])
+
+  execute_logs      TaskExecuteLog[]
+  execute_requests  TaskExecuteRequest[]
+
+  limits            Json                @default("{}")
+
+  @@map("tasks")
+}
+
+model TaskExecuteLog {
+  id          Int       @id @default(autoincrement())
+
+  task_id     Int
+  task        Task      @relation(fields: [task_id], references: [id])
+
+  price       Int
+
+  executor_id Int
+  executor    User      @relation("Executor", fields: [executor_id], references: [id])
+
+  approver_id Int?
+  approver    User?     @relation("Approver", fields: [approver_id], references: [id])
+
+  approved    Boolean?
+
+  created_at  DateTime  @default(now())
+
+  @@map("task_execute_logs")
+}
+
+model TaskExecuteRequest {
+  id          Int       @id @default(autoincrement())
+
+  task_id     Int
+  task        Task      @relation(fields: [task_id], references: [id])
+
+  executor_id Int
+  executor    User      @relation("RequestExecutor", fields: [executor_id], references: [id])
+
+  approver_id Int
+  approver    User      @relation("RequestApprover", fields: [approver_id], references: [id])
+
+  approved    Boolean?
+
+  created_at  DateTime  @default(now())
+
+  @@map("task_execute_requests")
+}
