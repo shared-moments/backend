@@ -1,0 +1,11 @@
+meta {
+  name: Confirm execute request
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/api/execute-requests/{{id}}/confirm/
+  body: none
+  auth: none
+}

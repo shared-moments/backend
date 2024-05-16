@@ -1,0 +1,11 @@
+meta {
+  name: Execute task
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{base_url}}/api/tasks/{{id}}/execute/
+  body: none
+  auth: none
+}
