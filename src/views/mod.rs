@@ -62,29 +62,13 @@ pub async fn get_router() -> Router {
 
 fn api_docs(api: TransformOpenApi) -> TransformOpenApi {
     api.title("Shared moments OpenAPI")
-        // .summary("An example Todo application")
-        // .description(include_str!("README.md"))
-        // .tag(Tag {
-        //     name: "todo".into(),
-        //     description: Some("Todo Management".into()),
-        //     ..Default::default()
-        // })
-        // .security_scheme(
-        //     "ApiKey",
-        //     aide::openapi::SecurityScheme::ApiKey {
-        //         location: aide::openapi::ApiKeyLocation::Header,
-        //         name: "X-Auth-Key".into(),
-        //         description: Some("A key that is ignored.".into()),
-        //         extensions: Default::default(),
-        //     },
-        // )
-        // .default_response_with::<Json<AppError>, _>(|res| {
-        //     res.example(AppError {
-        //         error: "some error happened".to_string(),
-        //         error_details: None,
-        //         error_id: Uuid::nil(),
-        //         // This is not visible.
-        //         status: StatusCode::IM_A_TEAPOT,
-        //     })
-        // })
+        .security_scheme(
+            "jwt-key",
+            aide::openapi::SecurityScheme::ApiKey {
+                location: aide::openapi::ApiKeyLocation::Header,
+                name: "Authorization".into(),
+                description: Some("JWT token.".into()),
+                extensions: Default::default(),
+            },
+        )
 }

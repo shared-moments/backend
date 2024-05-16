@@ -25,6 +25,8 @@ pub async fn create_task_handler(
 fn create_task_op(op: TransformOperation) -> TransformOperation {
     op
         .response::<201, Json<DetailedTask>>()
+        .security_requirement("jwt-key")
+        .tag("tasks")
 }
 
 
@@ -61,6 +63,8 @@ fn update_task_op(op: TransformOperation) -> TransformOperation {
     op
         .response::<200, Json<DetailedTask>>()
         .response::<404, Json<AppError>>()
+        .security_requirement("jwt-key")
+        .tag("tasks")
 }
 
 
@@ -96,6 +100,8 @@ fn delete_task_op(op: TransformOperation) -> TransformOperation {
     op
         .response::<204, ()>()
         .response::<404, Json<AppError>>()
+        .security_requirement("jwt-key")
+        .tag("tasks")
 }
 
 
@@ -121,6 +127,8 @@ fn execute_task_op(op: TransformOperation) -> TransformOperation {
         .response::<201, Json<DetailedTask>>()
         .response::<400, Json<AppError>>()
         .response::<404, Json<AppError>>()
+        .security_requirement("jwt-key")
+        .tag("tasks")
 }
 
 
@@ -151,6 +159,8 @@ pub async fn get_tasks_handler(
 fn get_task_router_op(op: TransformOperation) -> TransformOperation {
     op
         .response::<200, Json<Page<DetailedTask>>>()
+        .security_requirement("jwt-key")
+        .tag("tasks")
 }
 
 

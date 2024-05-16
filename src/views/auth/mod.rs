@@ -47,6 +47,7 @@ fn register_op(op: TransformOperation) -> TransformOperation {
     op
         .response::<201, &str>()
         .response::<400, Json<AppError>>()
+        .tag("auth")
 }
 
 
@@ -88,6 +89,7 @@ fn login_op(op: TransformOperation) -> TransformOperation {
     op
         .response::<201, Json<LoginResponse>>()
         .response::<400, Json<AppError>>()
+        .tag("auth")
 }
 
 

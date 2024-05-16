@@ -62,6 +62,8 @@ fn get_invite_op(op: TransformOperation) -> TransformOperation {
     op
         .response::<200, Json<InviteResponse>>()
         .response::<400, Json<AppError>>()
+        .security_requirement("jwt-key")
+        .tag("invites")
 }
 
 
@@ -107,6 +109,8 @@ fn delete_invite_op(op: TransformOperation) -> TransformOperation {
     op
         .response::<200, Json<InviteIdResponse>>()
         .response::<400, Json<AppError>>()
+        .security_requirement("jwt-key")
+        .tag("invites")
 }
 
 
@@ -130,6 +134,8 @@ fn accept_invite_op(op: TransformOperation) -> TransformOperation {
         .response::<200, Json<InviteIdResponse>>()
         .response::<400, Json<AppError>>()
         .response::<404, Json<AppError>>()
+        .security_requirement("jwt-key")
+        .tag("invites")
 }
 
 
@@ -173,6 +179,8 @@ fn decline_invite_op(op: TransformOperation) -> TransformOperation {
         .response::<200, Json<InviteIdResponse>>()
         .response::<400, Json<AppError>>()
         .response::<404, Json<AppError>>()
+        .security_requirement("jwt-key")
+        .tag("invites")
 }
 
 

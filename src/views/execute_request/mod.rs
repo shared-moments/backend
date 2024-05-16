@@ -39,6 +39,8 @@ pub async fn get_execute_requests_handler(
 fn get_execute_requests_op(op: TransformOperation) -> TransformOperation {
     op
         .response::<200, Json<Page<TaskExecuteRequest>>>()
+        .security_requirement("jwt-key")
+        .tag("execute-requests")
 }
 
 
@@ -68,6 +70,8 @@ fn confirm_task_execute_request_op(op: TransformOperation) -> TransformOperation
         .response::<400, Json<AppError>>()
         .response::<403, Json<AppError>>()
         .response::<404, Json<AppError>>()
+        .security_requirement("jwt-key")
+        .tag("execute-requests")
 }
 
 
