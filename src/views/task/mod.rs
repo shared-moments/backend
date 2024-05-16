@@ -1,19 +1,20 @@
 pub mod structs;
 
-use axum::{extract::{Path, Query}, http::StatusCode, response::IntoResponse, routing::{delete, get, post, put}, Json, Router};
+use aide::{axum::{routing::{delete_with, get_with, post_with, put_with}, ApiRouter, IntoApiResponse}, transform::TransformOperation};
+use axum::{extract::{Path, Query}, http::StatusCode, response::IntoResponse};
 
-use crate::{repositories::tasks::TaskRepository, services::tasks::execute::execute_task};
+use crate::{errors::AppError, extractors::Json, repositories::tasks::TaskRepository, services::tasks::execute::execute_task};
 
-use self::structs::{CreateTask, DetailedTask, UpdateTask};
+use self::structs::{CreateTask, DetailedTask, TaskIdPath, UpdateTask};
 
-use super::{structs::{ErrorResponse, Page, PaginationParams}, CurrentUser, Database};
+use super::{structs::{Page, PaginationParams}, CurrentUser, Database};
 
 
 pub async fn create_task_handler(
     db: Database,
     current_user: CurrentUser,
     Json(data): Json<CreateTask>,
-) -> impl IntoResponse {
+) -> impl IntoApiResponse {
     let task = TaskRepository::new(db.clone())
         .create(data, current_user.id)
         .await;
@@ -21,24 +22,32 @@ pub async fn create_task_handler(
     (StatusCode::CREATED, Json(DetailedTask::from(task))).into_response()
 }
 
+fn create_task_op(op: TransformOperation) -> TransformOperation {
+    op
+        .response::<201, Json<DetailedTask>>()
+}
+
 
 pub async fn update_task_handler(
-    Path(id): Path<i32>,
+    Path(TaskIdPath { id }): Path<TaskIdPath>,
     db: Database,
     current_user: CurrentUser,
     Json(data): Json<UpdateTask>,
-) -> impl IntoResponse {
+) -> impl IntoApiResponse {
     let task_repo = TaskRepository::new(db.clone());
 
     let task = task_repo
         .get_by_id(id)
         .await;
 
-    if task.author_id != current_user.id {
-        return (
-            StatusCode::NOT_FOUND,
-            Json(ErrorResponse { error_msg: "Task not found".to_owned() })
-        ).into_response();
+    {
+        let author_id: u32 = task.author_id.try_into().unwrap();
+        if author_id != current_user.id {
+            return (
+                StatusCode::NOT_FOUND,
+                AppError::new("Task not found")
+            ).into_response();
+        }
     }
 
     let task = task_repo
@@ -48,23 +57,32 @@ pub async fn update_task_handler(
     (StatusCode::OK, Json(DetailedTask::from(task))).into_response()
 }
 
+fn update_task_op(op: TransformOperation) -> TransformOperation {
+    op
+        .response::<200, Json<DetailedTask>>()
+        .response::<404, Json<AppError>>()
+}
+
 
 pub async fn delete_task_handler(
-    Path(id): Path<i32>,
+    Path(TaskIdPath { id }): Path<TaskIdPath>,
     db: Database,
     current_user: CurrentUser,
-) -> impl IntoResponse {
+) -> impl IntoApiResponse {
     let task_repo = TaskRepository::new(db.clone());
 
     let task = task_repo
         .get_by_id(id)
         .await;
 
-    if task.author_id != current_user.id {
-        return (
-            StatusCode::NOT_FOUND,
-            Json(ErrorResponse { error_msg: "Task not found".to_owned() })
-        ).into_response();
+    {
+        let author_id: u32 = task.author_id.try_into().unwrap();
+        if author_id != current_user.id {
+            return (
+                StatusCode::NOT_FOUND,
+                AppError::new("Task not found")
+            ).into_response();
+        }
     }
 
     task_repo
@@ -74,12 +92,18 @@ pub async fn delete_task_handler(
     StatusCode::NO_CONTENT.into_response()
 }
 
+fn delete_task_op(op: TransformOperation) -> TransformOperation {
+    op
+        .response::<204, ()>()
+        .response::<404, Json<AppError>>()
+}
+
 
 pub async fn execute_task_handler(
-    Path(id): Path<i32>,
+    Path(TaskIdPath { id }): Path<TaskIdPath>,
     db: Database,
     current_user: CurrentUser,
-) -> impl IntoResponse {
+) -> impl IntoApiResponse {
     let result = execute_task(
         id,
         db.clone(),
@@ -88,8 +112,15 @@ pub async fn execute_task_handler(
 
     match result {
         Ok(response) => (StatusCode::CREATED, Json(response)).into_response(),
-        Err((status, response)) => (status, response).into_response(),
+        Err(err) => err.into_response(),
     }
+}
+
+fn execute_task_op(op: TransformOperation) -> TransformOperation {
+    op
+        .response::<201, Json<DetailedTask>>()
+        .response::<400, Json<AppError>>()
+        .response::<404, Json<AppError>>()
 }
 
 
@@ -97,7 +128,7 @@ pub async fn get_tasks_handler(
     Query(pagination): Query<PaginationParams>,
     db: Database,
     current_user: CurrentUser,
-) -> impl IntoResponse {
+) -> impl IntoApiResponse {
     let task_repo = TaskRepository::new(db.clone());
 
     let page = pagination.page.unwrap_or(1);
@@ -117,12 +148,17 @@ pub async fn get_tasks_handler(
     ).into_response()
 }
 
+fn get_task_router_op(op: TransformOperation) -> TransformOperation {
+    op
+        .response::<200, Json<Page<DetailedTask>>>()
+}
 
-pub async fn get_task_router() -> Router {
-    Router::new()
-        .route("/", get(get_tasks_handler))
-        .route("/", post(create_task_handler))
-        .route("/{id}/", put(update_task_handler))
-        .route("/{id}/", delete(delete_task_handler))
-        .route("/{id}/execute/", post(execute_task_handler))
+
+pub async fn get_task_router() -> ApiRouter {
+    ApiRouter::new()
+        .api_route("/", get_with(get_tasks_handler, get_task_router_op))
+        .api_route("/", post_with(create_task_handler, create_task_op))
+        .api_route("/{id}/", put_with(update_task_handler, update_task_op))
+        .api_route("/{id}/", delete_with(delete_task_handler, delete_task_op))
+        .api_route("/{id}/execute/", post_with(execute_task_handler, execute_task_op))
 }

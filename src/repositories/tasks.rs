@@ -9,14 +9,14 @@ impl TaskRepository {
         Self { db }
     }
 
-    pub async fn create(&self, data: CreateTask, author_id: i32) -> task::Data {
+    pub async fn create(&self, data: CreateTask, author_id: u32) -> task::Data {
         self.db
             .task()
             .create(
                 data.title.clone(),
                 data.description.clone(),
                 data.price.try_into().unwrap(),
-                user::id::equals(author_id),
+                user::id::equals(author_id.try_into().unwrap()),
                 vec![
                     task::SetParam::SetIsNeedRequest(data.is_need_request),
                     task::SetParam::SetExecutorId(data.executor_id)
@@ -28,21 +28,21 @@ impl TaskRepository {
             .unwrap()
     }
 
-    pub async fn get_by_id(&self, id: i32) -> task::Data {
+    pub async fn get_by_id(&self, id: u32) -> task::Data {
         self.db
             .task()
-            .find_unique(task::UniqueWhereParam::IdEquals(id))
+            .find_unique(task::UniqueWhereParam::IdEquals(id.try_into().unwrap()))
             .exec()
             .await
             .unwrap()
             .unwrap()
     }
 
-    pub async fn update(&self, id: i32, data: UpdateTask) -> task::Data {
+    pub async fn update(&self, id: u32, data: UpdateTask) -> task::Data {
         self.db
             .task()
             .update(
-                task::UniqueWhereParam::IdEquals(id),
+                task::UniqueWhereParam::IdEquals(id.try_into().unwrap()),
                 vec![
                     task::SetParam::SetTitle(data.title.clone()),
                     task::SetParam::SetDescription(data.description.clone()),
@@ -57,17 +57,17 @@ impl TaskRepository {
             .unwrap()
     }
 
-    pub async fn delete(&self, id: i32) -> task::Data {
+    pub async fn delete(&self, id: u32) -> task::Data {
         self.db
             .task()
-            .delete(task::UniqueWhereParam::IdEquals(id))
+            .delete(task::UniqueWhereParam::IdEquals(id.try_into().unwrap()))
             .exec()
             .await
             .unwrap()
     }
 
-    pub async fn list(&self, user_id: i32, page: u32, page_size: u32) -> Page<task::Data> {
-        let user = self.db.user().find_unique(user::UniqueWhereParam::IdEquals(user_id)).exec().await.unwrap().unwrap();
+    pub async fn list(&self, user_id: u32, page: u32, page_size: u32) -> Page<task::Data> {
+        let user = self.db.user().find_unique(user::UniqueWhereParam::IdEquals(user_id.try_into().unwrap())).exec().await.unwrap().unwrap();
         let allowed_authors = match user.partner_id {
             Some(partner_id) => vec![user.id, partner_id],
             None => vec![user.id],

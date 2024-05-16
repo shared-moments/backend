@@ -2,19 +2,20 @@ pub mod structs;
 pub mod utils;
 pub mod middleware;
 
-use axum::{http::StatusCode, routing::post, Json, Router, response::IntoResponse};
+use aide::{axum::{routing::post_with, ApiRouter, IntoApiResponse}, transform::TransformOperation};
+use axum::{http::StatusCode, response::IntoResponse};
 
-use crate::prisma::user;
+use crate::{errors::AppError, extractors::Json, prisma::user};
 
 use self::{structs::{AuthData, LoginResponse}, utils::{get_token, hash_password}};
 
-use super::{structs::ErrorResponse, Database};
+use super::Database;
 
 
 pub async fn register(
     db: Database,
     Json(data): Json<AuthData>,
-) -> impl IntoResponse {
+) -> impl IntoApiResponse {
     let user = db
         .user()
         .find_unique(user::email::equals(data.email.clone()))
@@ -25,7 +26,7 @@ pub async fn register(
     if user.is_some() {
         return (
             StatusCode::BAD_REQUEST,
-            Json(ErrorResponse { error_msg: "User already exists".to_owned() })
+            AppError::new("User already exists")
         ).into_response()
     }
 
@@ -42,10 +43,17 @@ pub async fn register(
 }
 
 
+fn register_op(op: TransformOperation) -> TransformOperation {
+    op
+        .response::<201, &str>()
+        .response::<400, Json<AppError>>()
+}
+
+
 pub async fn login(
     db: Database,
     Json(data): Json<AuthData>,
-) -> impl IntoResponse {
+) -> impl IntoApiResponse {
     let user = db
         .user()
         .find_unique(user::email::equals(data.email.clone()))
@@ -57,7 +65,7 @@ pub async fn login(
         Some(user) => user,
         None => return (
             StatusCode::BAD_REQUEST,
-            Json(ErrorResponse { error_msg: "User or password incorrect".to_owned() })
+            AppError::new("User or password incorrect")
         ).into_response()
     };
 
@@ -66,7 +74,7 @@ pub async fn login(
     if password_hash != user.password {
         return (
             StatusCode::BAD_REQUEST,
-            Json(ErrorResponse { error_msg: "User or password incorrect".to_owned() })
+            AppError::new("User or password incorrect")
         ).into_response()
     }
 
@@ -76,8 +84,15 @@ pub async fn login(
 }
 
 
-pub async fn get_auth_router() -> Router {
-    Router::new()
-        .route("/register/", post(register))
-        .route("/login/", post(login))
+fn login_op(op: TransformOperation) -> TransformOperation {
+    op
+        .response::<201, Json<LoginResponse>>()
+        .response::<400, Json<AppError>>()
+}
+
+
+pub async fn get_auth_router() -> ApiRouter {
+    ApiRouter::new()
+        .api_route("/register/", post_with(register, register_op))
+        .api_route("/login/", post_with(login, login_op))
 }

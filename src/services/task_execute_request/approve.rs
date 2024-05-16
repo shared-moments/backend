@@ -1,14 +1,14 @@
 use axum::http::StatusCode;
 
-use crate::{prisma::task_execute_request, repositories::task_execute_request::TaskExecuteRequestRepository, views::{structs::ErrorResponse, CurrentUser, Database}};
+use crate::{errors::AppError, prisma::task_execute_request, repositories::task_execute_request::TaskExecuteRequestRepository, views::{CurrentUser, Database}};
 
 
 pub async fn change_approve_status(
-    id: i32,
+    id: u32,
     db: Database,
     current_user: CurrentUser,
     new_status: bool,
-) -> Result<task_execute_request::Data, (StatusCode, ErrorResponse)> {
+) -> Result<task_execute_request::Data, (StatusCode, AppError)> {
     let task_execute_request_repo = TaskExecuteRequestRepository::new(db.clone());
 
     let request = task_execute_request_repo
@@ -19,27 +19,24 @@ pub async fn change_approve_status(
         Some(v) => v,
         None => return Err((
             StatusCode::NOT_FOUND,
-            ErrorResponse {
-                error_msg: "Task execute request not found".to_string()
-            }
+            AppError::new("Task execute request not found")
         )),
     };
 
-    if request.approver_id != current_user.id {
-        return Err((
-            StatusCode::FORBIDDEN,
-            ErrorResponse {
-                error_msg: "You are not allowed to approve this request".to_string()
-            }
-        ));
+    {
+        let approver_id: u32 = request.approver_id.try_into().unwrap();
+        if approver_id != current_user.id {
+            return Err((
+                StatusCode::FORBIDDEN,
+                AppError::new("You are not allowed to approve this request")
+            ));
+        }
     }
 
     if request.approved.is_some() {
         return Err((
             StatusCode::BAD_REQUEST,
-            ErrorResponse {
-                error_msg: "Request already approved".to_string()
-            }
+            AppError::new("Request already approved")
         ));
     }
 

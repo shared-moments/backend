@@ -1,6 +1,6 @@
-use axum::Router;
+use aide::axum::ApiRouter;
 
 
-pub async fn get_execute_log_router() -> Router {
-    Router::new()
+pub async fn get_execute_log_router() -> ApiRouter {
+    ApiRouter::new()
 }

@@ -1,14 +1,14 @@
 use axum::http::StatusCode;
 
-use crate::{repositories::{invite::InviteRepository, users::UserRepository}, views::{structs::ErrorResponse, CurrentUser, Database}};
+use crate::{errors::AppError, repositories::{invite::InviteRepository, users::UserRepository}, views::{CurrentUser, Database}};
 
 
 pub async fn accept_invite(
-    id: i32,
+    id: u32,
     db: Database,
     current_user: CurrentUser,
     token: String,
-) -> Result<(), (StatusCode, ErrorResponse)> {
+) -> Result<(), (StatusCode, AppError)> {
     let user_repo = UserRepository::new(db.clone());
     let invite_repo = InviteRepository::new(db.clone());
 
@@ -20,14 +20,14 @@ pub async fn accept_invite(
         Some(invite) => invite,
         None => return Err((
             StatusCode::NOT_FOUND,
-            ErrorResponse { error_msg: "Invite not found".to_owned() }
+            AppError::new("Invite not found")
         )),
     };
 
     if invite.token != token {
         return Err((
             StatusCode::BAD_REQUEST,
-            ErrorResponse { error_msg: "Invalid token".to_owned() }
+            AppError::new("Invalid token")
         ));
     };
 
@@ -38,16 +38,16 @@ pub async fn accept_invite(
     if user.partner_id.is_some() {
         return Err((
             StatusCode::BAD_REQUEST,
-            ErrorResponse { error_msg: "You already have a partner".to_owned() }
+            AppError::new("You already have a partner")
         ));
     };
 
     user_repo
-        .update_partner(current_user.id, Some(invite.from_id))
+        .update_partner(current_user.id, Some(invite.from_id.try_into().unwrap()))
         .await;
 
     user_repo
-        .update_partner(invite.from_id, Some(current_user.id))
+        .update_partner(invite.from_id.try_into().unwrap(), Some(current_user.id))
         .await;
 
     invite_repo

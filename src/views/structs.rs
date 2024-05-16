@@ -1,20 +1,15 @@
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 
-#[derive(Serialize)]
-pub struct ErrorResponse {
-    pub error_msg: String,
-}
-
-
-#[derive(Deserialize)]
+#[derive(Deserialize, JsonSchema)]
 pub struct PaginationParams {
     pub page: Option<u32>,
     pub page_size: Option<u32>,
 }
 
 
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema)]
 pub struct Page<T>
     where T: Serialize
 {

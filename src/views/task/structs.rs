@@ -1,16 +1,17 @@
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::prisma::task;
 
 
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema)]
 pub struct User {
     pub id: i32,
     pub name: String,
 }
 
 
-#[derive(Deserialize)]
+#[derive(Deserialize, JsonSchema)]
 pub struct CreateTask {
     pub title: String,
     pub description: String,
@@ -20,7 +21,7 @@ pub struct CreateTask {
 }
 
 
-#[derive(Deserialize)]
+#[derive(Deserialize, JsonSchema)]
 pub struct UpdateTask {
     pub title: String,
     pub description: String,
@@ -31,7 +32,7 @@ pub struct UpdateTask {
 }
 
 
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema)]
 pub struct DetailedTask {
     pub id: i32,
     pub title: String,
@@ -59,8 +60,13 @@ impl From<task::Data> for DetailedTask {
 }
 
 
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema)]
 pub struct ExecuteResponse {
     pub request_id: Option<i32>,
     pub log_id: Option<i32>
+}
+
+#[derive(Deserialize, JsonSchema)]
+pub struct TaskIdPath {
+    pub id: u32
 }

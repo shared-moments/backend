@@ -1,13 +1,13 @@
-use axum::{http::StatusCode, Json};
+use axum::http::StatusCode;
 
-use crate::{repositories::{task_execute_log::TaskExecuteLogRepository, task_execute_request::TaskExecuteRequestRepository, tasks::TaskRepository, users::UserRepository}, views::{structs::ErrorResponse, task::structs::ExecuteResponse, CurrentUser, Database}};
+use crate::{errors::AppError, repositories::{task_execute_log::TaskExecuteLogRepository, task_execute_request::TaskExecuteRequestRepository, tasks::TaskRepository, users::UserRepository}, views::{task::structs::ExecuteResponse, CurrentUser, Database}};
 
 
 pub async fn execute_task(
-    task_id: i32,
+    task_id: u32,
     db: Database,
     current_user: CurrentUser,
-) -> Result<ExecuteResponse, (StatusCode, Json<ErrorResponse>)> {
+) -> Result<ExecuteResponse, AppError> {
     let user_repo = UserRepository::new(db.clone());
     let task_repo = TaskRepository::new(db.clone());
 
@@ -16,7 +16,7 @@ pub async fn execute_task(
         .await;
 
     let allowed_authors = match user.partner_id {
-        Some(partner_id) => vec![current_user.id, partner_id],
+        Some(partner_id) => vec![current_user.id, partner_id.try_into().unwrap()],
         None => vec![current_user.id],
     };
 
@@ -24,23 +24,29 @@ pub async fn execute_task(
         .get_by_id(task_id)
         .await;
 
-    if !allowed_authors.contains(&task.author_id) {
-        return Err((
-            StatusCode::NOT_FOUND,
-            Json(ErrorResponse { error_msg: "Task not found".to_owned() })
-        ));
+    {
+        let author_id: u32 = task.author_id.try_into().unwrap();
+        if !allowed_authors.contains(&author_id) {
+            return Err(
+                AppError::new("Task not found")
+                    .with_status(StatusCode::NOT_FOUND)
+            );
+        }
     }
 
     let is_allowed = match task.executor_id {
-        Some(executor_id) => executor_id == current_user.id,
+        Some(executor_id) => {
+            let executor_id: u32 = executor_id.try_into().unwrap();
+            executor_id == current_user.id
+        },
         None => true,
     };
 
     if !is_allowed {
-        return Err((
-            StatusCode::BAD_REQUEST,
-            Json(ErrorResponse { error_msg: "You are not allowed to execute this task".to_owned() })
-        ));
+        return Err(
+            AppError::new("You are not allowed to execute this task")
+                .with_status(StatusCode::BAD_REQUEST)
+        );
     }
 
     match task.is_need_request {
@@ -48,7 +54,7 @@ pub async fn execute_task(
             let task_execute_request_repo = TaskExecuteRequestRepository::new(db.clone());
 
             let request = task_execute_request_repo
-                .create(task_id, current_user.id, task.author_id)
+                .create(task_id, current_user.id, task.author_id.try_into().unwrap())
                 .await;
 
             Ok(ExecuteResponse { request_id: Some(request.id), log_id: None })
@@ -57,11 +63,11 @@ pub async fn execute_task(
             let task_execute_log_repo = TaskExecuteLogRepository::new(db.clone());
 
             let log = task_execute_log_repo
-                .create(task_id, task.price, current_user.id)
+                .create(task_id, task.price.try_into().unwrap(), current_user.id)
                 .await;
 
             user_repo
-                .update_balance(current_user.id, user.balance + task.price)
+                .update_balance(current_user.id, (user.balance + task.price).try_into().unwrap())
                 .await;
 
             Ok(ExecuteResponse { request_id: None, log_id: Some(log.id) })

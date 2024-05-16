@@ -4,11 +4,14 @@ pub mod db;
 pub mod prisma;
 pub mod services;
 pub mod repositories;
+pub mod extractors;
+pub mod errors;
 
 use std::net::SocketAddr;
 
 use dotenv::dotenv;
 use tracing::info;
+use tracing_subscriber::{filter, layer::SubscriberExt, util::SubscriberInitExt};
 
 use crate::views::get_router;
 
@@ -16,6 +19,11 @@ use crate::views::get_router;
 #[tokio::main]
 async fn main() {
     dotenv().ok();
+
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::fmt::layer().with_target(false))
+        .with(filter::LevelFilter::INFO)
+        .init();
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 8080));
 

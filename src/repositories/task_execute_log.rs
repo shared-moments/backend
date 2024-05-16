@@ -12,16 +12,16 @@ impl TaskExecuteLogRepository {
 
     pub async fn create(
         &self,
-        task_id: i32,
-        price: i32,
-        executor_id: i32,
+        task_id: u32,
+        price: u32,
+        executor_id: u32,
     ) -> crate::prisma::task_execute_log::Data {
         self.db
             .task_execute_log()
             .create(
-                task::UniqueWhereParam::IdEquals(task_id),
-                price,
-                user::UniqueWhereParam::IdEquals(executor_id),
+                task::UniqueWhereParam::IdEquals(task_id.try_into().unwrap()),
+                price.try_into().unwrap(),
+                user::UniqueWhereParam::IdEquals(executor_id.try_into().unwrap()),
                 vec![]
             )
             .exec()

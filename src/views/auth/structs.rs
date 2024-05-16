@@ -1,14 +1,15 @@
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 
-#[derive(Deserialize)]
+#[derive(Deserialize, JsonSchema)]
 pub struct AuthData {
     pub email: String,
     pub password: String,
 }
 
 
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema)]
 pub struct LoginResponse {
     pub token: String,
 }
@@ -16,5 +17,5 @@ pub struct LoginResponse {
 
 #[derive(Clone)]
 pub struct CurrentUser {
-    pub id: i32
+    pub id: u32
 }

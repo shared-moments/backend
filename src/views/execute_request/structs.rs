@@ -1,9 +1,10 @@
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::prisma::{task, task_execute_request, user};
 
 
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema)]
 pub struct Task {
     pub id: i32,
     pub title: String,
@@ -24,7 +25,7 @@ impl From<Box<task::Data>> for Task {
 }
 
 
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema)]
 pub struct User {
     pub id: i32,
     pub name: String
@@ -41,7 +42,7 @@ impl From<Box<user::Data>> for User {
 }
 
 
-#[derive(Serialize)]
+#[derive(Serialize, JsonSchema)]
 pub struct TaskExecuteRequest {
     pub id: i32,
     pub task: Task,
@@ -63,7 +64,12 @@ impl From<task_execute_request::Data> for TaskExecuteRequest {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, JsonSchema)]
 pub struct ConfirmQuery {
-    pub approved: bool
+    pub approve: bool
+}
+
+#[derive(Deserialize, JsonSchema)]
+pub struct TaskExecuteIdPath {
+    pub id: u32
 }

@@ -9,23 +9,23 @@ impl UserRepository {
         Self { db }
     }
 
-    pub async fn get_by_id(&self, id: i32) -> user::Data {
+    pub async fn get_by_id(&self, id: u32) -> user::Data {
         self.db
             .user()
-            .find_unique(user::UniqueWhereParam::IdEquals(id))
+            .find_unique(user::UniqueWhereParam::IdEquals(id.try_into().unwrap()))
             .exec()
             .await
             .unwrap()
             .unwrap()
     }
 
-    pub async fn update_balance(&self, id: i32, balance: i32) -> user::Data {
+    pub async fn update_balance(&self, id: u32, balance: u32) -> user::Data {
         self.db
             .user()
             .update(
-                user::UniqueWhereParam::IdEquals(id),
+                user::UniqueWhereParam::IdEquals(id.try_into().unwrap()),
                 vec![
-                    user::SetParam::SetBalance(balance),
+                    user::SetParam::SetBalance(balance.try_into().unwrap()),
                 ],
             )
             .exec()
@@ -33,13 +33,16 @@ impl UserRepository {
             .unwrap()
     }
 
-    pub async fn update_partner(&self, id: i32, partner_id: Option<i32>) -> user::Data {
+    pub async fn update_partner(&self, id: u32, partner_id: Option<u32>) -> user::Data {
         self.db
             .user()
             .update(
-                user::UniqueWhereParam::IdEquals(id),
+                user::UniqueWhereParam::IdEquals(id.try_into().unwrap()),
                 vec![
-                    user::SetParam::SetPartnerId(partner_id),
+                    match partner_id {
+                        Some(v) => user::SetParam::SetPartnerId(Some(v.try_into().unwrap())),
+                        None => user::SetParam::SetPartnerId(None),
+                    }
                 ],
             )
             .exec()

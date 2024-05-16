@@ -34,7 +34,7 @@ pub async fn authorize_current_user(
     let key: Hmac<Sha256> = Hmac::new_from_slice(config::CONFIG.secret_ket.as_bytes()).unwrap();
     let claims: BTreeMap<String, String> = token.verify_with_key(&key).unwrap();
 
-    let id = claims.get("user_id")?.parse::<i32>().ok()?;
+    let id = claims.get("user_id")?.parse::<u32>().ok()?;
 
     Some(CurrentUser { id })
 }
