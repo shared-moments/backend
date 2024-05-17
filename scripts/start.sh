@@ -2,4 +2,4 @@
 
 export $(/env.sh)
 
-exec /usr/local/bin/book_bot
+exec /usr/local/bin/shared_moments
